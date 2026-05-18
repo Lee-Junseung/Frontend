@@ -1,0 +1,26 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+/* Pretendard font-family aliases for Figma export compatibility */
+.font-\[\'Pretendard\:ExtraBold\'\,sans-serif\],
+[class*="font-['Pretendard:ExtraBold'"] {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  font-weight: 800 !important;
+}
+
+.font-\[\'Pretendard\:Bold\'\,sans-serif\],
+[class*="font-['Pretendard:Bold'"] {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  font-weight: 700 !important;
+}
+
+.font-\[\'Pretendard\:SemiBold\'\,sans-serif\],
+[class*="font-['Pretendard:SemiBold'"] {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  font-weight: 600 !important;
+}
+
+.font-\[\'Pretendard\:Medium\'\,sans-serif\],
+[class*="font-['Pretendard:Medium'"] {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  font-weight: 500 !important;
+}
