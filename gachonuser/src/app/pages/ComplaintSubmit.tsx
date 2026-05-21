@@ -127,14 +127,9 @@ export default function ComplaintSubmit() {
       );
       images.forEach(img => formData.append("images", img.file));
 
-      const response = await api.post("/complaints", formData, {
-        headers: {
-          "Content-Type": undefined,
-          // axios 기본값 제거 > 브라우저가 자동으로 multipart/form-data boundary 설정
-        },
-      });
+      const response = await api.post("/complaints", formData);
 
-      if (response.data.code === 200 || response.data.code === 201) {
+      if (response.data.code === 201) {
         setAlert({ show: true, message: "민원이 정상적으로 접수되었습니다.", type: "success" });
       }
     } catch (error: any) {

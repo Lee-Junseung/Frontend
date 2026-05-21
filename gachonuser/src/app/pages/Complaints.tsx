@@ -16,7 +16,7 @@ interface Complaint {
   complaintId: number;
   category: string;
   title: string;
-  status: "RECEIVED" | "COMPLETED" | "DELETED";
+  status: "RECEIVED" | "COMPLETED";
   createdAt: string;
 }
 
@@ -109,7 +109,7 @@ export default function Complaints() {
 
       const response = await api.get("/complaints", { params });
       if (response.data.code === 200) {
-        setComplaints(response.data.data.filter((c: Complaint) => c.status !== "DELETED"));
+        setComplaints(response.data.data);
       }
     } catch (error: any) {
       const status = error.response?.status;
@@ -154,23 +154,14 @@ export default function Complaints() {
     setIsSaving(true);
     try {
       const formData = new FormData();
-      formData.append(
-        "request",
-        new Blob(
-          [JSON.stringify({
-            title: editState.title,
-            content: editState.content,
-            category: editState.category,
-          })],
-          { type: "application/json" }
-        )
-      );
+      formData.append("title", editState.title);
+      formData.append("content", editState.content);
+      formData.append("category", editState.category);
       idsToDelete.forEach(imgId => formData.append("deleteImageIds", imgId.toString()));
       newImageFiles.forEach(file => formData.append("images", file));
 
       const response = await api.patch(`/complaints/${id}`, formData, {
-        headers: { "Content-Type": undefined },
-        // multipart/form-data boundary 자동 설정
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (response.data.code === 200) {
@@ -202,11 +193,10 @@ export default function Complaints() {
   const handleDelete = useCallback(async (targetId: number) => {
     try {
       const response = await api.delete(`/complaints/${targetId}`);
-      if (response.data.code === 200) {
+      if (response.data.code === 200 && response.data.data?.deleted === true) {
         setAlert({ show: false });
         setExpandedId(null);
-        // 목록에서 바로 제거
-        setComplaints(prev => prev.filter(c => c.complaintId !== targetId));
+        fetchComplaints();
       }
     } catch (error: any) {
       const status = error.response?.status;
@@ -246,16 +236,16 @@ export default function Complaints() {
                 {alert.isConfirm ? (
                   <>
                     <button
-                      onClick={() => handleDelete(alert.targetId)}
-                      className="h-[50px] flex-1 rounded-[18px] bg-nav-accent font-bold text-white shadow-md transition-all active:scale-[0.96]"
-                    >
-                      확인
-                    </button>
-                    <button
                       onClick={() => setAlert({ show: false })}
                       className="h-[50px] flex-1 rounded-[18px] bg-nav-accent-light font-bold text-nav-accent transition-all active:scale-[0.96]"
                     >
                       취소
+                    </button>
+                    <button
+                      onClick={() => handleDelete(alert.targetId)}
+                      className="h-[50px] flex-1 rounded-[18px] bg-nav-accent font-bold text-white shadow-md transition-all active:scale-[0.96]"
+                    >
+                      확인
                     </button>
                   </>
                 ) : (

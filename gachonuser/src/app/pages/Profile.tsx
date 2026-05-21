@@ -14,12 +14,10 @@ import api from "../api/axios";
 interface UserInfo {
   name: string;
   studentNo: string;
+  dormitoryName: string;
+  roomNo: string | number;
   email: string;
   phone: string;
-  dormitoryName: string;
-  // 조회 API 응답 필드
-  roomNo: string;
-  // 조회 API 응답 필드
 }
 
 interface PasswordForm {
@@ -57,19 +55,15 @@ function parseApiError(error: any, fallback: string): string {
 
 // ─── 유효성 검사 유틸 ─────────────────────────────────────
 
-function validateEditForm(
-  roomNo: string,
-  phone: string,
-  passwords: PasswordForm,
-): FormErrors {
+function validateEditForm(editedInfo: UserInfo, passwords: PasswordForm): FormErrors {
   const errors: FormErrors = {};
 
-  const roomStr = String(roomNo).trim();
+  const roomStr = String(editedInfo.roomNo).trim();
   if (!roomStr) errors.roomNo = "호수를 입력하세요.";
   else if (!NUM_REGEX.test(roomStr)) errors.roomNo = "숫자만 입력하세요.";
   else if (roomStr.length < 3) errors.roomNo = "3자리 이상 입력하세요.";
 
-  const purePhone = phone.replace(/-/g, "");
+  const purePhone = editedInfo.phone.replace(/-/g, "");
   if (!purePhone) errors.phone = "전화번호를 입력하세요.";
   else if (!NUM_REGEX.test(purePhone)) errors.phone = "숫자만 입력하세요.";
   else if (!PHONE_REGEX.test(purePhone)) errors.phone = "전화번호 형식에 맞게 입력하세요.";
@@ -96,15 +90,7 @@ export default function Profile() {
   const [alert, setAlert] = useState<AlertState>({ show: false });
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-
-  // 수정 폼 상태 (조회 API 필드명 기준)
-  const [editPhone, setEditPhone] = useState("");
-  const [editRoomNo, setEditRoomNo] = useState("");
-  const [editDormName, setEditDormName] = useState("");
-  // 표시용 ("제1학생생활관")
-  const [editDormId, setEditDormId] = useState("");
-  // 전송용 ("1", "2", "3")
-
+  const [editedInfo, setEditedInfo] = useState<UserInfo | null>(null);
   const [passwords, setPasswords] = useState<PasswordForm>({ current: "", new: "", confirm: "" });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -115,9 +101,11 @@ export default function Profile() {
       const response = await api.get("/users/me");
       if (response.data.code === 200) {
         setUserInfo(response.data.data);
+        setEditedInfo(response.data.data);
       }
     } catch (error: any) {
       const status = error.response?.status;
+
       if (status === 404) {
         setAlert({ show: true, isConfirm: false, message: "사용자 정보를 찾을 수 없습니다." });
       } else {
@@ -130,51 +118,48 @@ export default function Profile() {
 
   useEffect(() => { fetchUserInfo(); }, [fetchUserInfo]);
 
-  // ── 수정 모드 진입 시 폼 초기화 ──
-  useEffect(() => {
-    if (isEditing && userInfo) {
-      setEditPhone(userInfo.phone);
-      setEditRoomNo(userInfo.roomNo);
-      setEditDormName(userInfo.dormitoryName);
-      // dormitoryName으로 id 역추적
-      const found = DORM_OPTIONS.find(d => d.name === userInfo.dormitoryName);
-      setEditDormId(found?.id ?? "1");
-      setPasswords({ current: "", new: "", confirm: "" });
-      setErrors({});
-    }
-  }, [isEditing, userInfo]);
-
   // ── 실시간 유효성 검사 ──
   useEffect(() => {
-    if (isEditing) {
-      setErrors(validateEditForm(editRoomNo, editPhone, passwords));
-    }
-  }, [editPhone, editRoomNo, passwords, isEditing]);
+    if (!editedInfo) return;
+    setErrors(validateEditForm(editedInfo, passwords));
+  }, [editedInfo, passwords]);
+
+  // ── 입력 핸들러 ──
+  const handleEditChange = useCallback((field: keyof UserInfo, value: string) => {
+    setEditedInfo(prev => prev ? { ...prev, [field]: value } : prev);
+  }, []);
+
+  const handlePasswordChange = useCallback((field: keyof PasswordForm, value: string) => {
+    setPasswords(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   // ── 수정 취소 ──
   const handleCancelEdit = useCallback(() => {
     setIsEditing(false);
-  }, []);
+    setEditedInfo(userInfo);
+    setPasswords({ current: "", new: "", confirm: "" });
+  }, [userInfo]);
 
   // ── 저장 ──
   const handleSave = useCallback(async () => {
-    const errs = validateEditForm(editRoomNo, editPhone, passwords);
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
-    }
+    if (!editedInfo) return;
+
+    const errs = validateEditForm(editedInfo, passwords);
+    if (Object.keys(errs).length > 0) return;
 
     setIsLoading(true);
     try {
       const updateRes = await api.patch("/users/me", {
-        phone: editPhone.replace(/-/g, ""),
-        dormitoryId: editDormId,
-        roomNo: editRoomNo,
+        phone: editedInfo.phone.replace(/-/g, ""),
+        dormitoryName: String(editedInfo.dormitoryName),
+        roomNo: Number(editedInfo.roomNo),
       });
 
       if (updateRes.data.code !== 200) {
         throw new Error(updateRes.data.message);
       }
+
+      setUserInfo(updateRes.data.data);
 
       if (passwords.current && passwords.new) {
         try {
@@ -184,67 +169,74 @@ export default function Profile() {
           });
         } catch (error: any) {
           const status = error.response?.status;
+
           const msg =
             status === 404 ? "사용자 정보를 찾을 수 없습니다." :
               status === 422 ? "비밀번호 형식을 확인해주세요." :
                 parseApiError(error, "현재 비밀번호가 일치하지 않습니다.");
           setAlert({ show: true, isConfirm: false, message: `정보는 수정되었으나, \n비밀번호 변경에 실패했습니다: ${msg}` });
           setIsEditing(false);
-          await fetchUserInfo();
+          setPasswords({ current: "", new: "", confirm: "" });
           return;
         }
       }
 
       setIsEditing(false);
-      await fetchUserInfo();
-      // 서버에서 최신 데이터 다시 조회
+      setPasswords({ current: "", new: "", confirm: "" });
       setAlert({ show: true, isConfirm: false, message: "성공적으로 수정되었습니다." });
 
     } catch (error: any) {
       const status = error.response?.status;
+
       if (status === 400) {
         setAlert({ show: true, isConfirm: false, message: "잘못된 입력값입니다.\n다시 확인해주세요." });
       } else if (status === 422) {
         setAlert({ show: true, isConfirm: false, message: "입력값 형식을 확인해주세요." });
       } else if (status !== 401) {
-        setAlert({ show: true, isConfirm: false, message: parseApiError(error, "수정 중 오류가 발생했습니다.") });
+        const message = parseApiError(error, "수정 중 오류가 발생했습니다.");
+        setAlert({ show: true, isConfirm: false, message });
       }
     } finally {
       setIsLoading(false);
     }
-  }, [editPhone, editRoomNo, editDormId, editDormName, passwords]);
+  }, [editedInfo, passwords]);
 
   // ── 로그아웃 ──
   const handleLogout = useCallback(async () => {
     setIsLoading(true);
     try {
-      await api.post("/auth/logout");
+      const response = await api.post("/auth/logout");
+
+      if (response.data.code === 200 && response.data.data.logout) {
+        // 서버에서 성공적으로 세션이 무효화됨
+        console.log("로그아웃 성공");
+      }
     } catch (error) {
+      // 이미 세션이 만료되었거나 에러가 나도 로그아웃 처리는 진행해야 함
       console.error("Logout API Error:", error);
     } finally {
+      // 클라이언트 세션/로컬 스토리지 정리
       sessionStorage.clear();
-      localStorage.clear();
+      localStorage.clear(); // 로그인 관련 모든 상태를 한 번에 날려버림
+
       navigate("/auth/login", { replace: true });
+      setIsLoading(true); // 이동 중 중복 클릭 방지
     }
   }, [navigate]);
 
-  // ── 저장 버튼 비활성화 조건 ──
-  const isNotChanged =
-    userInfo?.phone === editPhone.replace(/-/g, "") &&
-    String(userInfo?.roomNo) === String(editRoomNo) &&
-    userInfo?.dormitoryName === editDormName &&
-    !passwords.new;
-
-  const isSaveDisabled =
-    !!(errors.roomNo || errors.phone || errors.newPw || errors.confirmPw) ||
-    (!!passwords.new && !passwords.current) ||
-    isNotChanged;
-
+  // ── 로딩 화면 ──
   if (isLoading || !userInfo) return (
     <div className="flex min-h-screen items-center justify-center bg-[#f0f9ff]">
       <Loader2 className="size-8 animate-spin text-nav-accent" />
     </div>
   );
+
+  const isNotChanged =
+    JSON.stringify(userInfo) === JSON.stringify(editedInfo) && !passwords.new;
+
+  const isSaveDisabled =
+    !!(errors.roomNo || errors.phone || errors.newPw || errors.confirmPw) ||
+    (!!passwords.new && !passwords.current) || isNotChanged;
 
   return (
     <div className="relative mx-auto flex min-h-screen w-full max-w-[448px] flex-col bg-[#f0f9ff] font-sans shadow-2xl antialiased">
@@ -255,7 +247,10 @@ export default function Profile() {
           <div className="w-full max-w-[320px] animate-in zoom-in-95 duration-200 rounded-[28px] bg-white p-7 shadow-2xl">
             <div className="flex flex-col items-center text-center">
               <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-nav-active-bg-from">
-                <AlertCircle className="text-nav-accent" size={28} />
+                {alert.isConfirm
+                  ? <AlertCircle className="text-nav-accent" size={28} />
+                  : <Check className="text-nav-accent" size={28} />
+                }
               </div>
               <h2 className="mb-2 text-[17px] font-bold text-nav-primary">알림</h2>
               <p className="mb-6 whitespace-pre-line text-[14px] font-medium leading-relaxed text-nav-accent">
@@ -357,32 +352,32 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setOpenSelect(v => !v)}
-                  className={`flex h-[54px] w-full items-center justify-between rounded-[18px] border-2 bg-white px-4 shadow-sm transition-all ${openSelect ? "border-nav-accent" : "border-white"}`}
+                  className={`flex h-[54px] w-full items-center justify-between rounded-[18px] border-2 bg-white px-4 shadow-sm transition-all ${openSelect ? "border-nav-accent" : "border-white"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <Building2 size={18} className={openSelect ? "text-nav-accent" : "text-nav-inactive"} />
-                    <span className="text-[14px] font-bold text-nav-primary">{editDormName}</span>
+                    <span className="text-[14px] font-bold text-nav-primary">
+                      {DORM_OPTIONS.find(o => o.id === String(editedInfo?.dormitoryName))?.name ?? "선택"}
+                    </span>
                   </div>
                   <ChevronDown className={`size-4 text-nav-inactive transition-transform ${openSelect ? "rotate-180" : ""}`} />
                 </button>
 
-                {openSelect && (
+                {openSelect && editedInfo && (
                   <div className="absolute top-[70px] z-50 mt-2 w-full animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden rounded-[22px] border border-slate-100 bg-white shadow-2xl">
                     {DORM_OPTIONS.map(opt => (
                       <button
                         key={opt.id}
                         type="button"
                         onClick={() => {
-                          setEditDormName(opt.name);
-                          // 표시용
-                          setEditDormId(opt.id);
-                          // 전송용
+                          setEditedInfo(prev => prev ? { ...prev, dormitoryName: opt.id } : prev);
                           setOpenSelect(false);
                         }}
                         className="flex w-full items-center justify-between border-b border-slate-50 px-5 py-4 text-left text-[14px] font-bold text-nav-inactive transition-colors last:border-none hover:bg-nav-active-bg-from hover:text-nav-accent"
                       >
                         {opt.name}
-                        {editDormName === opt.name && <Check size={16} className="text-nav-accent" />}
+                        {String(editedInfo.dormitoryName) === opt.id && <Check size={16} className="text-nav-accent" />}
                       </button>
                     ))}
                   </div>
@@ -390,29 +385,17 @@ export default function Profile() {
                 <div className="h-5" />
               </div>
 
-              <EditInput
-                label="호수"
-                value={editRoomNo}
-                error={errors.roomNo}
-                icon={Home}
-                onChange={setEditRoomNo}
-              />
-              <EditInput
-                label="전화번호"
-                value={editPhone}
-                error={errors.phone}
-                icon={Phone}
-                onChange={setEditPhone}
-              />
+              <EditInput label="호수" field="roomNo" value={String(editedInfo?.roomNo ?? "")} error={errors.roomNo} icon={Home} onChange={v => handleEditChange("roomNo", v)} />
+              <EditInput label="전화번호" field="phone" value={editedInfo?.phone ?? ""} error={errors.phone} icon={Phone} onChange={v => handleEditChange("phone", v)} />
 
               {/* 비밀번호 변경 */}
               <div className="border-t border-slate-100 py-2">
                 <p className="mb-4 inline-block rounded-full bg-nav-active-bg-from px-3 py-1.5 text-[11px] font-bold text-nav-accent">
                   비밀번호 변경 (선택)
                 </p>
-                <EditInput label="현재 비밀번호" value={passwords.current} error={errors.currentPw} icon={Lock} type="password" placeholder="현재 비밀번호 입력" onChange={v => setPasswords(p => ({ ...p, current: v }))} />
-                <EditInput label="새 비밀번호" value={passwords.new} error={errors.newPw} icon={KeyRound} type="password" placeholder="새 비밀번호 입력" onChange={v => setPasswords(p => ({ ...p, new: v }))} />
-                <EditInput label="새 비밀번호 확인" value={passwords.confirm} error={errors.confirmPw} icon={ShieldCheck} type="password" placeholder="다시 입력" onChange={v => setPasswords(p => ({ ...p, confirm: v }))} />
+                <EditInput label="현재 비밀번호" field="current" value={passwords.current} error={errors.currentPw} icon={Lock} type="password" placeholder="현재 비밀번호 입력" onChange={v => handlePasswordChange("current", v)} />
+                <EditInput label="새 비밀번호" field="new" value={passwords.new} error={errors.newPw} icon={KeyRound} type="password" placeholder="새 비밀번호 입력" onChange={v => handlePasswordChange("new", v)} />
+                <EditInput label="새 비밀번호 확인" field="confirm" value={passwords.confirm} error={errors.confirmPw} icon={ShieldCheck} type="password" placeholder="다시 입력" onChange={v => handlePasswordChange("confirm", v)} />
               </div>
 
               <button
@@ -479,6 +462,7 @@ function DisabledInput({ label, value, icon: Icon }: DisabledInputProps) {
 
 interface EditInputProps {
   label: string;
+  field: string;
   value: string;
   error?: string;
   icon: LucideIcon;
@@ -500,7 +484,8 @@ function EditInput({ label, value, error, icon: Icon, type = "text", placeholder
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`h-[48px] w-full rounded-[12px] border bg-white pl-11 pr-4 text-[14px] font-bold text-nav-primary transition-all focus:outline-none focus:border-nav-accent ${error ? "border-red-400" : "border-[#eef6f7]"}`}
+          className={`h-[48px] w-full rounded-[12px] border bg-white pl-11 pr-4 text-[14px] font-bold text-nav-primary transition-all focus:outline-none focus:border-nav-accent ${error ? "border-red-400" : "border-[#eef6f7]"
+            }`}
         />
       </div>
       <div className="h-[18px]">
