@@ -16,7 +16,7 @@ interface Complaint {
   complaintId: number;
   category: string;
   title: string;
-  status: "RECEIVED" | "COMPLETED";
+  status: "RECEIVED" | "COMPLETED" | "DELETED";
   createdAt: string;
 }
 
@@ -102,6 +102,9 @@ export default function Complaints() {
   const fetchComplaints = useCallback(async () => {
     if (!isLoggedIn) return;
     setLoading(true);
+    setComplaints([]);
+    setDetails({});
+    setExpandedId(null);
     try {
       const params: Record<string, unknown> = { page: 0, size: 20 };
       const status = TAB_STATUS[activeTab];
@@ -109,7 +112,15 @@ export default function Complaints() {
 
       const response = await api.get("/complaints", { params });
       if (response.data.code === 200) {
-        setComplaints(response.data.data);
+        const data: Complaint[] = response.data.data;
+
+        const filtered = data.filter(c => {
+          if (c.status === "DELETED") return false;
+          if (status && c.status !== status) return false;
+          return true;
+        });
+
+        setComplaints(filtered);
       }
     } catch (error: any) {
       const status = error.response?.status;
@@ -193,9 +204,10 @@ export default function Complaints() {
   const handleDelete = useCallback(async (targetId: number) => {
     try {
       const response = await api.delete(`/complaints/${targetId}`);
-      if (response.data.code === 200 && response.data.data?.deleted === true) {
+      if (response.data.code === 200) {
         setAlert({ show: false });
         setExpandedId(null);
+        setComplaints(prev => prev.filter(c => c.complaintId !== targetId));
         fetchComplaints();
       }
     } catch (error: any) {
