@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
   User, Mail, Phone, Lock, ChevronLeft,
@@ -123,17 +123,17 @@ export default function FindPassword() {
   const refNewPassword = useRef<HTMLDivElement>(null);
   const refConfirmPassword = useRef<HTMLDivElement>(null);
 
-  const verifyRefs = {
+  const verifyRefs = useMemo(() => ({
     studentId: refStudentId,
     name: refName,
     email: refEmail,
     phone: refPhone,
-  } as const;
+  }), []);
 
-  const resetRefs = {
+  const resetRefs = useMemo(() => ({
     newPassword: refNewPassword,
     confirmPassword: refConfirmPassword,
-  } as const;
+  }), []);
 
   // ── 실시간 유효성 검사 ──
   useEffect(() => {
@@ -198,8 +198,7 @@ export default function FindPassword() {
           name: verifyForm.name,
           email: verifyForm.email,
           phone: verifyForm.phone.replace(/-/g, ""),
-        },
-        { withCredentials: true }
+        }
       );
 
       if (response.data.code === 200) {
@@ -235,8 +234,7 @@ export default function FindPassword() {
     try {
       const response = await api.patch(
         "/auth/password/reset",
-        { newPassword: resetForm.newPassword },
-        { withCredentials: true }
+        { newPassword: resetForm.newPassword }
       );
 
       if (response.data.code === 200) {
@@ -264,7 +262,7 @@ export default function FindPassword() {
         const message =
           status === 404 ? "사용자 정보를 찾을 수 없습니다." :
             status === 422 ? "입력값 형식을 확인해주세요." :
-              serverMessage || "비밀번호 재설정에 실패했습니다.";
+              parseApiError(error, "비밀번호 재설정에 실패했습니다.");
         setAlert({ show: true, message, type: "error" });
       }
     } finally {

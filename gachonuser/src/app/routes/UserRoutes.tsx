@@ -7,42 +7,42 @@ import Complaints from "../pages/Complaints";
 import ComplaintSubmit from "../pages/ComplaintSubmit";
 import Notices from "../pages/Notices";
 import Profile from "../pages/Profile";
+import NotFound from "../pages/NotFound";
+import Layout from "../components/Layout";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 export const UserRoutes = [
   {
     path: "/",
-    Component: Home,
-  },
-  {
-    path: "/auth/login",
-    Component: Login,
-  },
-  {
-    path: "/auth/signup",
-    Component: SignUp,
-  },
-  {
-    path: "/auth/password/identity",
-    Component: FindPassword,
-  },
-  {
-    path: "/chatbot",
-    Component: Chatbot,
-  },
-  {
-    path: "/complaints",
-    Component: Complaints,
-  },
-  {
-    path: "/complaints/submit",
-    Component: ComplaintSubmit,
-  },
-  {
-    path: "/notices",
-    Component: Notices,
-  },
-  {
-    path: "/users/me",
-    Component: Profile,
+    Component: Layout,
+    children: [
+      // 인증 불필요 라우트
+      { index: true, Component: Home },
+      { path: "notices", Component: Notices },
+      { path: "chatbot", Component: Chatbot },
+
+      // 인증 라우트 그룹
+      {
+        path: "auth",
+        children: [
+          { path: "login", Component: Login },
+          { path: "signup", Component: SignUp },
+          { path: "password/identity", Component: FindPassword },
+        ],
+      },
+
+      // 인증 필요 라우트
+      {
+        Component: ProtectedRoute,
+        children: [
+          { path: "complaints", Component: Complaints },
+          { path: "complaints/submit", Component: ComplaintSubmit },
+          { path: "users/me", Component: Profile },
+        ],
+      },
+
+      // 404
+      { path: "*", Component: NotFound },
+    ],
   },
 ];

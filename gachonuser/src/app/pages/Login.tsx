@@ -88,12 +88,6 @@ export default function Login() {
 
         navigate("/");
       }
-      // } catch (error: any) {
-      //   const message =
-      //     error.response?.data?.message ??
-      //     "이메일 또는 비밀번호가\n올바르지 않습니다.";
-
-      //   setAlertMsg(message);
 
     } catch (error: any) {
       const serverMessage = error.response?.data?.message;

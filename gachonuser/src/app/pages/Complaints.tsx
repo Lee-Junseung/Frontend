@@ -207,7 +207,6 @@ export default function Complaints() {
       if (response.data.code === 200) {
         setAlert({ show: false });
         setExpandedId(null);
-        setComplaints(prev => prev.filter(c => c.complaintId !== targetId));
         fetchComplaints();
       }
     } catch (error: any) {
@@ -377,7 +376,11 @@ export default function Complaints() {
                         {isSaving ? "저장 중..." : "저장"}
                       </button>
                       <button
-                        onClick={() => setEditState(null)}
+                        onClick={() => {
+                          setEditState(null);
+                          setIdsToDelete([]);
+                          setNewImageFiles([]);
+                        }}
                         className="flex-1 rounded-[12px] border border-[#eef6f7] bg-white py-3 text-[13px] font-bold text-nav-inactive transition-all active:scale-95"
                       >
                         취소

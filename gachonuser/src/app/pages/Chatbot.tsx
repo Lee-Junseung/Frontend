@@ -64,7 +64,7 @@ interface FeedbackSectionProps {
 const SUGGESTED_QUESTIONS: readonly string[] = [
   "통금은 언제인가요?",
   "휴게실에는 어떤 시설이 있나요?",
-  "기숫가 카드를 잃어버렸어요.",
+  "기숙사 카드를 잃어버렸어요.",
   "외부인이 방문하려면 어떻게 해야하나요?",
 ];
 
@@ -94,14 +94,6 @@ const fetchSessionId = async (): Promise<string | null> => {
     return newSessionId;
   } catch (error: any) {
     const status = error.response?.status;
-
-    if (status === 422) {
-      console.error("세션 생성 실패: 요청 검증 오류 (422)", error);
-    } else if (status === 500) {
-      console.error("세션 생성 실패: 서버 내부 오류 (500)", error);
-    } else {
-      console.error("세션 생성 실패:", error);
-    }
     return null;
   }
 };
@@ -248,9 +240,9 @@ export default function Chatbot() {
   }, [alert]);
 
   // 알림 호출 함수
-  const showAlert = (message: string, type: "success" | "error" = "success", isConfirm = false, onConfirm?: () => void) => {
+  const showAlert = useCallback((message: string, type: "success" | "error" = "success", isConfirm = false, onConfirm?: () => void) => {
     setAlert({ show: true, message, type, isConfirm, onConfirm });
-  };
+  }, []);
 
   useEffect(() => {
     const initSession = async () => {
@@ -342,16 +334,14 @@ export default function Chatbot() {
 
         api.post("/ai/chat/feedback", payload)
           .then((res) => {
-            const _feedbackResult = res.data;
             setMessages(p => p.map(m =>
               m.id === id ? { ...m, isFeedbackSubmitted: true } : m
             ));
           })
           .catch((error: any) => {
-            const status = error.response?.status;
-
+            const httpStatus = error.response?.status;
             showAlert(
-              status === 404 ? "해당 대화 로그를 찾을 수 없습니다." :
+              httpStatus === 404 ? "해당 대화 로그를 찾을 수 없습니다." :
                 "피드백 전송에 실패했습니다.",
               "error", true, () => { window.location.reload(); }
             );
@@ -387,8 +377,7 @@ export default function Chatbot() {
 
       api.post("/ai/chat/feedback", buildFeedbackPayload(target))
         .then((res) => {
-          // 명세: 공통 래퍼 없이 피드백 객체 직접 반환
-          const _feedbackResult = res.data; // 향후 활용 가능
+          // 공통 래퍼 없이 피드백 객체 직접 반환
           setMessages(p => p.map(m =>
             m.id === id ? { ...m, isFeedbackOpen: false, isFeedbackSubmitted: true } : m
           ));
@@ -410,6 +399,7 @@ export default function Chatbot() {
   // ── 메시지 전송 ──
   const handleSend = useCallback(async (text?: string) => {
     const textToSend = (text ?? inputValue).trim();
+
     if (!textToSend || isTyping) return;
 
     let currentSessionId = sessionStorage.getItem(STORAGE_KEY_SESSION);
@@ -427,11 +417,14 @@ export default function Chatbot() {
       id: Date.now().toString(), text: textToSend, sender: "user", timestamp: formatTime(),
     };
 
+    // 회원 메시지 저장 시
     setMessages(prev => {
-      const updated = [...prev, userMsg];
+      const updated = [...prev, userMsg].slice(-100);
       if (isLoggedIn) localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(updated));
       return updated;
     });
+
+
     setInputValue("");
     setIsTyping(true);
 
@@ -456,8 +449,9 @@ export default function Chatbot() {
           isFeedbackSubmitted: false,
         };
 
+        // 봇 메시지 저장 시
         setMessages(prev => {
-          const updated = [...prev, botMsg];
+          const updated = [...prev, botMsg].slice(-100);
           if (isLoggedIn) localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(updated));
           return updated;
         });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { Calendar, ChevronDown, ExternalLink, Loader2, AlertCircle, Plus } from "lucide-react";
 import BottomNav from "../components/BottomNav";
 import api from "../api/axios";
@@ -39,7 +39,7 @@ interface DetailInfoRowProps {
   isWarning?: boolean;
 }
 
-function DetailInfoRow({ label, value, isWarning = false }: DetailInfoRowProps) {
+const DetailInfoRow = memo(function DetailInfoRow({ label, value, isWarning = false }: DetailInfoRowProps) {
   return (
     <div className={`rounded-xl border p-3 ${isWarning ? "border-[#ffe3e3] bg-[#fff5f5]" : "border-[#eef6f7] bg-[#f8fafc]"
       }`}>
@@ -49,7 +49,7 @@ function DetailInfoRow({ label, value, isWarning = false }: DetailInfoRowProps) 
       <p className="text-[13px] font-bold text-nav-primary/70">{value}</p>
     </div>
   );
-}
+});
 
 interface NoticeCardProps {
   item: NoticeItem;
@@ -61,7 +61,7 @@ interface NoticeCardProps {
   onRetry: () => void;
 }
 
-function NoticeCard({
+const NoticeCard = memo(function NoticeCard({
   item, isExpanded, detail, isDetailLoading, hasError, onToggle, onRetry,
 }: NoticeCardProps) {
   return (
@@ -137,7 +137,7 @@ function NoticeCard({
       </div>
     </div>
   );
-}
+});
 
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 

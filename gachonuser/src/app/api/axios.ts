@@ -1,33 +1,46 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "/api/v1", // 서버 주소 입력
-  withCredentials: true, // 세션 쿠키 전송을 위해 필수
+  baseURL: "/api/v1",
+  // 서버 주소 입력
+  withCredentials: true,
+  // 세션 쿠키 전송을 위해 필수
   headers: {
     "Content-Type": "application/json",
   },
 });
 
+// 요청 인터셉터
+api.interceptors.request.use(
+  (config) => config,
+  (error) => Promise.reject(error)
+);
+
 // 응답 인터셉터
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const { status } = error.response || {};
+    // 네트워크 에러 처리
+    if (!error.response) {
+      return Promise.reject(error);
+    }
 
-    // 401(미인증) 에러 처리
+    const { status } = error.response;
+    const publicPaths = ["/auth/login", "/auth/signup", "/auth/password/identity", "/", "/notices", "/chatbot"];
+
     if (status === 401) {
-      // 현재 페이지가 로그인이나 메인("/")이 아닐 때만 튕겨내기
-      const publicPaths = ["/auth/login", "/signup", "/"];
       if (!publicPaths.includes(window.location.pathname)) {
-        
-        // 로컬 데이터 정리
-        localStorage.clear();
+        sessionStorage.removeItem("isLoggedIn");
+        sessionStorage.removeItem("userName");
+        sessionStorage.removeItem("userRole");
+        sessionStorage.removeItem("userId");
 
-        // alert 보다는 자연스러운 이동을 선호하지만, 
-        // 꼭 필요하다면 한 번만 실행되도록 제어가 필요합니다.
-        // 여기서는 단순히 로그인 페이지로 이동 시킵니다.
         window.location.href = "/auth/login?expired=true";
       }
+    }
+
+    if (status === 403) {
+      window.location.href = "/";
     }
 
     return Promise.reject(error);
@@ -35,5 +48,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
-// API 작업

@@ -209,18 +209,15 @@ export default function Profile() {
 
       if (response.data.code === 200 && response.data.data.logout) {
         // 서버에서 성공적으로 세션이 무효화됨
-        console.log("로그아웃 성공");
       }
     } catch (error) {
       // 이미 세션이 만료되었거나 에러가 나도 로그아웃 처리는 진행해야 함
-      console.error("Logout API Error:", error);
     } finally {
       // 클라이언트 세션/로컬 스토리지 정리
       sessionStorage.clear();
       localStorage.clear(); // 로그인 관련 모든 상태를 한 번에 날려버림
 
       navigate("/auth/login", { replace: true });
-      setIsLoading(true); // 이동 중 중복 클릭 방지
     }
   }, [navigate]);
 

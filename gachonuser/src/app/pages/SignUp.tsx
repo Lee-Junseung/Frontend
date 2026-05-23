@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
   User, Lock, Mail, Phone, ChevronLeft, KeyRound,
@@ -150,7 +150,7 @@ export default function SignUp() {
   const refDormitoryName = useRef<HTMLDivElement>(null);
   const refRoomId = useRef<HTMLDivElement>(null);
 
-  const FIELD_REFS: Record<string, React.RefObject<HTMLDivElement | null>> = {
+  const FIELD_REFS = useMemo(() => ({
     studentNo: refStudentNo,
     name: refName,
     email: refEmail,
@@ -160,9 +160,9 @@ export default function SignUp() {
     confirmPassword: refConfirmPassword,
     dormitoryName: refDormitoryName,
     roomId: refRoomId,
-  };
+  }), []);
 
-  const FIELD_ORDER = Object.keys(FIELD_REFS) as (keyof FormData)[];
+  const FIELD_ORDER = useMemo(() => Object.keys(FIELD_REFS) as (keyof FormData)[], [FIELD_REFS]);
 
   // ── 타이머 ──
   useEffect(() => {
@@ -327,17 +327,10 @@ export default function SignUp() {
         roomNo: `${roomNo}`,
       });
 
-      // if (res.data.code === 201) {
       if (res.data.code === 200 || res.data.code === 201) {
         setAlert({ show: true, message: "가온이의 가족이 되신 것을 환영합니다!", type: "success" });
       }
-      // 또는 응답 status로 체크
-      // if (res.status === 200 || res.status === 201) {
-      //   setAlert({ show: true, message: "가온이의 가족이 되신 것을 환영합니다!", type: "success" });
-      // }
     } catch (error: any) {
-      console.log("에러 상세:", error.response?.data);
-
       const status = error.response?.status;
 
       const message =

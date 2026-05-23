@@ -65,7 +65,7 @@ export default function BottomNav() {
 
   const checkAuth = useCallback(() => {
     const isLoggedIn = sessionStorage.getItem("isLoggedIn") === "true";
-    const hasCookie = document.cookie.includes("JSESSIONID");
+    const hasCookie = document.cookie.split(";").some(c => c.trim().startsWith("JSESSIONID="));
     return isLoggedIn || hasCookie;
   }, []);
 
@@ -159,8 +159,8 @@ export default function BottomNav() {
                 />
               </div>
               <span className={`mt-2 text-[11px] tracking-tight transition-all ${isActive(item.path)
-                  ? "font-black text-nav-primary"
-                  : "font-bold text-nav-accent"
+                ? "font-black text-nav-primary"
+                : "font-bold text-nav-accent"
                 }`}>
                 {item.label}
               </span>
@@ -181,8 +181,8 @@ export default function BottomNav() {
                 style={getIconStyle(item.path)}
               />
               <span className={`text-[11px] transition-colors duration-300 ${isActive(item.path)
-                  ? "font-bold text-nav-primary"
-                  : "text-nav-inactive group-hover:text-nav-primary"
+                ? "font-bold text-nav-primary"
+                : "text-nav-inactive group-hover:text-nav-primary"
                 }`}>
                 {item.label}
               </span>

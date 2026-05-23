@@ -66,12 +66,9 @@ export default function ComplaintSubmit() {
     if (!isLoggedIn) navigate("/auth/login");
   }, [isLoggedIn, navigate]);
 
-  // ── 이미지 URL 메모리 해제 ──
   useEffect(() => {
-    return () => {
-      images.forEach(img => URL.revokeObjectURL(img.previewUrl));
-    };
-  }, [images]);
+    return () => { images.forEach(img => URL.revokeObjectURL(img.previewUrl)); };
+  }, []);
 
   // ── 파생값 ──
   const selectedCategory = CATEGORY_OPTIONS.find(o => o.id === categoryId)!;
@@ -142,7 +139,7 @@ export default function ComplaintSubmit() {
     } finally {
       setLoading(false);
     }
-  }, [title, content, categoryId, images, navigate]);
+  }, [title, content, categoryId, images]);
 
   if (!isLoggedIn) return null;
 
@@ -153,7 +150,10 @@ export default function ComplaintSubmit() {
       {alert.show && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-nav-primary/20 px-8 backdrop-blur-[3px]"
-          onClick={() => setAlert({ show: false })}
+          onClick={() => {
+            if (alert.show && alert.type === "success") navigate(-1);
+            setAlert({ show: false });
+          }}
         >
           <div
             className="w-full max-w-[320px] animate-in fade-in zoom-in duration-200 rounded-[28px] bg-white p-7 shadow-2xl"
