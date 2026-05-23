@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router";
 import {
   MessageSquare, Users, Clock, UserCheck, AlertCircle,
 } from "lucide-react";
@@ -107,6 +108,7 @@ function useAlert() {
 }
 
 function useStatistics(triggerAlert: (title: string, msg: string) => void) {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<StatResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -133,15 +135,14 @@ function useStatistics(triggerAlert: (title: string, msg: string) => void) {
 
       // 401은 즉시 리디렉션
       if (status === 401) {
-        window.location.href = "/admin/auth/login";
-        return;
+        navigate("/admin/auth/login", { replace: true });
       }
 
       triggerAlert("오류", parseApiError(error, "서버와의 통신이 원활하지 않습니다."));
     } finally {
       setLoading(false);
     }
-  }, [triggerAlert]);
+  }, [triggerAlert, navigate]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 

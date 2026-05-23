@@ -494,11 +494,19 @@ export default function AdminComplaints() {
               <Loader2 className="size-10 animate-spin text-nav-accent" aria-label="로딩 중" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-              {complaints.map(item => (
-                <ComplaintCard key={item.complaintId} item={item} onOpen={openDetail} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+                {complaints.map(item => (
+                  <ComplaintCard key={item.complaintId} item={item} onOpen={openDetail} />
+                ))}
+              </div>
+
+              {complaints.length === 0 && (
+                <div className="py-20 text-center text-[14px] font-bold text-nav-inactive">
+                  접수된 민원이 없습니다.
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

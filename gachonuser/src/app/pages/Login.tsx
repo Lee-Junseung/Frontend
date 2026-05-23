@@ -85,6 +85,7 @@ export default function Login() {
         sessionStorage.setItem("userName", name);
         sessionStorage.setItem("userRole", "USER");
         sessionStorage.setItem("userId", userId);
+        sessionStorage.removeItem("chat_sessionId");
 
         navigate("/");
       }

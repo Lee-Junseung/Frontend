@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router";
 import {
   Search, MoreVertical, Loader2,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -305,7 +304,6 @@ function StudentDetailModal({ userId, onClose }: DetailModalProps) {
         );
         if (data.code === 200) setStudent(data.data);
       } catch (error: unknown) {
-        console.error("학생 상세 조회 실패:", error);
       } finally {
         setLoading(false);
       }
@@ -462,7 +460,6 @@ function StudentDetailModal({ userId, onClose }: DetailModalProps) {
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export default function AdminStudents() {
-  const navigate = useNavigate();
   const { alert, triggerAlert, closeAlert } = useAlert();
 
   const {

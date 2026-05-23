@@ -207,6 +207,9 @@ function CategorySelectBox({
 function RegulationDetailModal({ doc, onClose }: DetailModalProps) {
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="regulation-detail-title"
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       onClick={onClose}
     >
@@ -217,7 +220,7 @@ function RegulationDetailModal({ doc, onClose }: DetailModalProps) {
       >
         <div className="flex shrink-0 items-center justify-between border-b border-nav-inactive/20 bg-white px-8 py-6">
           <div>
-            <h2 className="text-[22px] font-bold text-nav-primary">규정 상세 정보</h2>
+            <h2 id="regulation-detail-title" className="text-[22px] font-bold text-nav-primary">규정 상세 정보</h2>
             <p className="mt-1 text-[12px] text-nav-inactive">
               문서 코드: {doc.document_id} • 버전: {doc.document_version}
             </p>
@@ -347,7 +350,6 @@ export default function AdminRegulations() {
       if (data.status === 200) setCategories(data.data.items);
     } catch (error: unknown) {
       triggerAlert("오류", "카테고리 목록을 불러오는 중 오류가 발생했습니다.");
-      console.error("카테고리 로드 실패:", error);
     }
   }, [triggerAlert]);
 
@@ -380,7 +382,6 @@ export default function AdminRegulations() {
       }
     } catch (error: unknown) {
       triggerAlert("오류", "문서 목록을 불러오는 중 오류가 발생했습니다.");
-      console.error("문서 로드 실패:", error);
     } finally {
       setLoading(false);
     }
