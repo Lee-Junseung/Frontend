@@ -355,7 +355,7 @@ export default function Profile() {
                   <div className="flex items-center gap-3">
                     <Building2 size={18} className={openSelect ? "text-nav-accent" : "text-nav-inactive"} />
                     <span className="text-[14px] font-bold text-nav-primary">
-                      {DORM_OPTIONS.find(o => o.id === String(editedInfo?.dormitoryName))?.name ?? "선택"}
+                      {DORM_OPTIONS.find(o => o.name === editedInfo?.dormitoryName)?.name ?? "선택"}
                     </span>
                   </div>
                   <ChevronDown className={`size-4 text-nav-inactive transition-transform ${openSelect ? "rotate-180" : ""}`} />
@@ -368,13 +368,13 @@ export default function Profile() {
                         key={opt.id}
                         type="button"
                         onClick={() => {
-                          setEditedInfo(prev => prev ? { ...prev, dormitoryName: opt.id } : prev);
+                          setEditedInfo(prev => prev ? { ...prev, dormitoryName: opt.name } : prev);
                           setOpenSelect(false);
                         }}
                         className="flex w-full items-center justify-between border-b border-slate-50 px-5 py-4 text-left text-[14px] font-bold text-nav-inactive transition-colors last:border-none hover:bg-nav-active-bg-from hover:text-nav-accent"
                       >
                         {opt.name}
-                        {String(editedInfo.dormitoryName) === opt.id && <Check size={16} className="text-nav-accent" />}
+                        {editedInfo.dormitoryName === opt.name && <Check size={16} className="text-nav-accent" />}
                       </button>
                     ))}
                   </div>
