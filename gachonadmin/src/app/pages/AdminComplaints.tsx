@@ -139,23 +139,19 @@ function useComplaints(triggerAlert: (title: string, msg: string) => void) {
       const params: Record<string, unknown> = { page: 0, size: 10 };
       if (filterStatus !== "전체") params.status = filterStatus;
 
-      const { data } = await api.get<{
-        code: number;
-        data: { content: ComplaintDetail[]; totalElements: number };
-      }>("/admin/complaints", { params });
+      const [mainRes, receivedRes, completedRes] = await Promise.all([
+        api.get("/admin/complaints", { params }),
+        api.get("/admin/complaints", { params: { page: 0, size: 1, status: "RECEIVED" } }),
+        api.get("/admin/complaints", { params: { page: 0, size: 1, status: "COMPLETED" } }),
+      ]);
 
-      if (data.code === 200) {
-        const { content, totalElements } = data.data;
-        setComplaints(content);
-
-        // 전체 탭에서만 카운트 업데이트 (필터 탭에서는 유지)
-        if (filterStatus === "전체") {
-          setTotalCounts({
-            ALL: totalElements,
-            RECEIVED: content.filter(i => i.status === "RECEIVED").length,
-            COMPLETED: content.filter(i => i.status === "COMPLETED").length,
-          });
-        }
+      if (mainRes.data.code === 200) {
+        setComplaints(mainRes.data.data.content);
+        setTotalCounts({
+          ALL: mainRes.data.data.totalElements,
+          RECEIVED: receivedRes.data.data.totalElements,
+          COMPLETED: completedRes.data.data.totalElements,
+        });
       }
     } catch (error: unknown) {
       triggerAlert("오류", parseApiError(error, "목록을 불러오지 못했습니다."));

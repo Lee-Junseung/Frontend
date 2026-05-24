@@ -57,7 +57,8 @@ interface AlertState {
 const ALL_CATEGORY = "__ALL__";
 
 const CATEGORY_MAP: Record<string, { icon: LucideIcon; label: string }> = {
-  "admission": { icon: DoorOpen, label: "입·퇴사 안내" },
+
+  "admission": { icon: DoorOpen, label: "입·퇴사안내" },
   "facility": { icon: Plug, label: "편의시설" },
   "facility_usage": { icon: ClipboardList, label: "시설 이용 안내" },
   "intro": { icon: Building2, label: "생활관 소개" },
@@ -65,7 +66,6 @@ const CATEGORY_MAP: Record<string, { icon: LucideIcon; label: string }> = {
   "tip": { icon: Coffee, label: "생활 정보" },
   "tip_restroom": { icon: Wrench, label: "화장실 안내" },
 };
-
 // ─── 유틸 ─────────────────────────────────────────────────
 
 function getCategoryIcon(category: string): LucideIcon {
@@ -500,7 +500,7 @@ export default function AdminRegulations() {
           <div className="mt-6 flex items-center gap-3 rounded-[16px] border border-nav-accent/20 bg-nav-active-bg-from p-4">
             <Info className="text-nav-accent" size={20} />
             <p className="text-[13px] font-medium text-nav-accent">
-              현재 활성화된 문서(is_active = true)만 챗봇 상담 및 학생 페이지에 노출됩니다.
+              현재 활성화된 문서만 챗봇 페이지에 노출됩니다.
             </p>
           </div>
         </div>

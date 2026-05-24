@@ -14,7 +14,8 @@ import api from "../api/axios";
 interface UserInfo {
   name: string;
   studentNo: string;
-  dormitoryName: string;
+  dormitoryName: string;  // 조회용
+  dormitoryId: number;    // 수정용
   roomNo: string | number;
   email: string;
   phone: string;
@@ -36,9 +37,9 @@ type AlertState =
 // ─── 상수 ─────────────────────────────────────────────────
 
 const DORM_OPTIONS = [
-  { id: "1", name: "제1학생생활관" },
-  { id: "2", name: "제2학생생활관" },
-  { id: "3", name: "제3학생생활관" },
+  { id: 1, name: "제1학생생활관" },
+  { id: 2, name: "제2학생생활관" },
+  { id: 3, name: "제3학생생활관" },
 ] as const;
 
 const PASSWORD_REGEX = /^(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
@@ -100,12 +101,15 @@ export default function Profile() {
     try {
       const response = await api.get("/users/me");
       if (response.data.code === 200) {
-        setUserInfo(response.data.data);
-        setEditedInfo(response.data.data);
+        const data = response.data.data;
+        // dormitoryName → dormitoryId 변환
+        const dormitoryId = DORM_OPTIONS.find(o => o.name === data.dormitoryName)?.id ?? 1;
+        const converted = { ...data, dormitoryId };
+        setUserInfo(converted);
+        setEditedInfo(converted);
       }
     } catch (error: any) {
       const status = error.response?.status;
-
       if (status === 404) {
         setAlert({ show: true, isConfirm: false, message: "사용자 정보를 찾을 수 없습니다." });
       } else {
@@ -151,7 +155,7 @@ export default function Profile() {
     try {
       const updateRes = await api.patch("/users/me", {
         phone: editedInfo.phone.replace(/-/g, ""),
-        dormitoryName: String(editedInfo.dormitoryName),
+        dormitoryId: editedInfo.dormitoryId,
         roomNo: Number(editedInfo.roomNo),
       });
 
@@ -159,7 +163,10 @@ export default function Profile() {
         throw new Error(updateRes.data.message);
       }
 
-      setUserInfo(updateRes.data.data);
+      // 저장 후 응답에서 dormitoryId 재변환
+      const data = updateRes.data.data;
+      const dormitoryId = DORM_OPTIONS.find(o => o.name === data.dormitoryName)?.id ?? 1;
+      setUserInfo({ ...data, dormitoryId });
 
       if (passwords.current && passwords.new) {
         try {
@@ -169,7 +176,6 @@ export default function Profile() {
           });
         } catch (error: any) {
           const status = error.response?.status;
-
           const msg =
             status === 404 ? "사용자 정보를 찾을 수 없습니다." :
               status === 422 ? "비밀번호 형식을 확인해주세요." :
@@ -187,7 +193,6 @@ export default function Profile() {
 
     } catch (error: any) {
       const status = error.response?.status;
-
       if (status === 400) {
         setAlert({ show: true, isConfirm: false, message: "잘못된 입력값입니다.\n다시 확인해주세요." });
       } else if (status === 422) {
@@ -206,16 +211,16 @@ export default function Profile() {
     setIsLoading(true);
     try {
       const response = await api.post("/auth/logout");
-
-      if (response.data.code === 200 && response.data.data.logout) {
-        // 서버에서 성공적으로 세션이 무효화됨
-      }
-    } catch (error) {
-      // 이미 세션이 만료되었거나 에러가 나도 로그아웃 처리는 진행해야 함
-    } finally {
-      // 클라이언트 세션/로컬 스토리지 정리
+      if (response.data.code === 200 && response.data.data.logout) { }
+    } catch (error) { }
+    finally {
       sessionStorage.clear();
-      localStorage.clear(); // 로그인 관련 모든 상태를 한 번에 날려버림
+      // localStorage.clear() 대신 로그인 관련 항목만 삭제
+      localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userId");
+      // 채팅 기록(chat_history)과 sessionId(chat_sessionId_loggedIn)는 유지
 
       navigate("/auth/login", { replace: true });
     }
@@ -312,6 +317,7 @@ export default function Profile() {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-6">
+                {/* 조회 모드: dormitoryName 그대로 표시 */}
                 <InfoRow icon={Building2} label="생활관" value={userInfo.dormitoryName} />
                 <InfoRow icon={Home} label="호수" value={`${userInfo.roomNo}호`} />
                 <InfoRow icon={Mail} label="이메일" value={userInfo.email} />
@@ -343,19 +349,18 @@ export default function Profile() {
               <DisabledInput label="학번" value={userInfo.studentNo} icon={User} />
               <DisabledInput label="이메일" value={userInfo.email} icon={Mail} />
 
-              {/* 생활관 선택 */}
+              {/* 생활관 선택 - dormitoryId 기준 */}
               <div className="relative flex flex-col">
                 <label className={LABEL_CLASS}>생활관</label>
                 <button
                   type="button"
                   onClick={() => setOpenSelect(v => !v)}
-                  className={`flex h-[54px] w-full items-center justify-between rounded-[18px] border-2 bg-white px-4 shadow-sm transition-all ${openSelect ? "border-nav-accent" : "border-white"
-                    }`}
+                  className={`flex h-[54px] w-full items-center justify-between rounded-[18px] border-2 bg-white px-4 shadow-sm transition-all ${openSelect ? "border-nav-accent" : "border-white"}`}
                 >
                   <div className="flex items-center gap-3">
                     <Building2 size={18} className={openSelect ? "text-nav-accent" : "text-nav-inactive"} />
                     <span className="text-[14px] font-bold text-nav-primary">
-                      {DORM_OPTIONS.find(o => o.name === editedInfo?.dormitoryName)?.name ?? "선택"}
+                      {DORM_OPTIONS.find(o => o.id === editedInfo?.dormitoryId)?.name ?? "선택"}
                     </span>
                   </div>
                   <ChevronDown className={`size-4 text-nav-inactive transition-transform ${openSelect ? "rotate-180" : ""}`} />
@@ -368,13 +373,13 @@ export default function Profile() {
                         key={opt.id}
                         type="button"
                         onClick={() => {
-                          setEditedInfo(prev => prev ? { ...prev, dormitoryName: opt.name } : prev);
+                          setEditedInfo(prev => prev ? { ...prev, dormitoryId: opt.id } : prev);
                           setOpenSelect(false);
                         }}
                         className="flex w-full items-center justify-between border-b border-slate-50 px-5 py-4 text-left text-[14px] font-bold text-nav-inactive transition-colors last:border-none hover:bg-nav-active-bg-from hover:text-nav-accent"
                       >
                         {opt.name}
-                        {editedInfo.dormitoryName === opt.name && <Check size={16} className="text-nav-accent" />}
+                        {editedInfo.dormitoryId === opt.id && <Check size={16} className="text-nav-accent" />}
                       </button>
                     ))}
                   </div>
@@ -481,8 +486,7 @@ function EditInput({ label, value, error, icon: Icon, type = "text", placeholder
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`h-[48px] w-full rounded-[12px] border bg-white pl-11 pr-4 text-[14px] font-bold text-nav-primary transition-all focus:outline-none focus:border-nav-accent ${error ? "border-red-400" : "border-[#eef6f7]"
-            }`}
+          className={`h-[48px] w-full rounded-[12px] border bg-white pl-11 pr-4 text-[14px] font-bold text-nav-primary transition-all focus:outline-none focus:border-nav-accent ${error ? "border-red-400" : "border-[#eef6f7]"}`}
         />
       </div>
       <div className="h-[18px]">

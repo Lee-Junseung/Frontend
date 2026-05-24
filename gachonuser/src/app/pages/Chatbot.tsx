@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, memo, useCallback } from "react";
 import BottomNav from "../components/BottomNav";
-import { ChevronDown, ChevronUp, CheckCircle, AlertCircle, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, CheckCircle, AlertCircle } from "lucide-react";
 import api from "../api/axios";
 
 import iconShortcut from "../icons/Togo.svg";
@@ -79,21 +79,40 @@ const REASON_OPTIONS: readonly { code: ReasonCode; label: string }[] = [
 ];
 
 const STORAGE_KEY_HISTORY = "chat_history";
-const STORAGE_KEY_SESSION = "chat_sessionId";
+// 로그인 사용자용 sessionId (localStorage)
+const STORAGE_KEY_SESSION_LOGGEDIN = "chat_sessionId_loggedIn";
+// 비로그인 사용자용 sessionId (sessionStorage - 탭 닫으면 초기화)
+const STORAGE_KEY_SESSION_GUEST = "chat_sessionId_guest";
 
 // ─── 유틸 ─────────────────────────────────────────────────
 
 const formatTime = () =>
   new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true });
 
-const fetchSessionId = async (): Promise<string | null> => {
+const getSessionId = (isLoggedIn: boolean): string | null => {
+  if (isLoggedIn) {
+    return localStorage.getItem(STORAGE_KEY_SESSION_LOGGEDIN);
+  }
+  return sessionStorage.getItem(STORAGE_KEY_SESSION_GUEST);
+};
+
+const saveSessionId = (isLoggedIn: boolean, sessionId: string) => {
+  if (isLoggedIn) {
+    // 로그인 사용자: localStorage에 저장 → 브라우저 닫아도 유지
+    localStorage.setItem(STORAGE_KEY_SESSION_LOGGEDIN, sessionId);
+  } else {
+    // 비로그인 사용자: sessionStorage에 저장 → 탭 닫으면 초기화
+    sessionStorage.setItem(STORAGE_KEY_SESSION_GUEST, sessionId);
+  }
+};
+
+const fetchSessionId = async (isLoggedIn: boolean): Promise<string | null> => {
   try {
     const response = await api.post("/chatbot/sessions", {});
     const newSessionId: string = response.data.data.sessionId;
-    sessionStorage.setItem(STORAGE_KEY_SESSION, newSessionId);
+    saveSessionId(isLoggedIn, newSessionId);
     return newSessionId;
-  } catch (error: any) {
-    const status = error.response?.status;
+  } catch {
     return null;
   }
 };
@@ -152,7 +171,6 @@ const FeedbackSection = memo(function FeedbackSection({
 
   return (
     <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
-      {/* 좋아요 / 싫어요 버튼 */}
       <div className="ml-1 flex gap-2">
         <button onClick={() => onFeedbackClick(msg.id, "like")} className="p-1 transition-transform active:scale-90">
           <img src={msg.feedbackStatus === "like" ? iconLikeBlue : iconLike} alt="좋아요" className="size-5" />
@@ -162,11 +180,9 @@ const FeedbackSection = memo(function FeedbackSection({
         </button>
       </div>
 
-      {/* 싫어요 선택 시 상세 영역 */}
       {msg.isFeedbackOpen && msg.feedbackStatus === "dislike" && (
         <div className="mt-2 w-full animate-in fade-in zoom-in-95 rounded-[22px] border border-[#e2eef1] bg-[#f0f7f9] p-4 shadow-xl">
           <p className="mb-3 px-1 text-[12px] font-bold text-nav-primary/70">불만족 사유를 선택해주세요</p>
-
           <div className="mb-3 flex flex-wrap gap-1.5">
             {REASON_OPTIONS.map(option => (
               <button
@@ -225,34 +241,27 @@ export default function Chatbot() {
     type: "success" | "error";
     isConfirm?: boolean;
     onConfirm?: () => void;
-  }>({
-    show: false,
-    message: "",
-    type: "success",
-  });
+  }>({ show: false, message: "", type: "success" });
 
-  // 알림 닫기 및 확인 로직
   const handleAlertConfirm = useCallback(() => {
-    if (alert.isConfirm && alert.onConfirm) {
-      alert.onConfirm();
-    }
+    if (alert.isConfirm && alert.onConfirm) alert.onConfirm();
     setAlert(prev => ({ ...prev, show: false }));
   }, [alert]);
 
-  // 알림 호출 함수
   const showAlert = useCallback((message: string, type: "success" | "error" = "success", isConfirm = false, onConfirm?: () => void) => {
     setAlert({ show: true, message, type, isConfirm, onConfirm });
   }, []);
 
+  // ── 세션 초기화 ──
   useEffect(() => {
     const initSession = async () => {
-      const existing = sessionStorage.getItem(STORAGE_KEY_SESSION);
+      const existing = getSessionId(isLoggedIn);
       if (!existing) {
-        await fetchSessionId();
+        await fetchSessionId(isLoggedIn);
       }
     };
     initSession();
-  }, []);
+  }, [isLoggedIn]);
 
   // ── 초기 메시지 ──
   useEffect(() => {
@@ -276,7 +285,6 @@ export default function Chatbot() {
 
   // ── 스크롤 ──
   const scrollToBottom = useCallback(() => {
-    // 메세지 전송 직후 최하단으로 이동
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({
         top: scrollContainerRef.current.scrollHeight,
@@ -286,7 +294,6 @@ export default function Chatbot() {
   }, []);
 
   const scrollToLastBotMsg = useCallback(() => {
-    // 응답 메세지 직후 마지막 봇 메세지가 화면 중앙으로 오도록
     const container = scrollContainerRef.current;
     if (!container) return;
     const botMessages = container.querySelectorAll("[data-sender='bot']");
@@ -295,10 +302,7 @@ export default function Chatbot() {
       const containerHeight = container.clientHeight;
       const msgTop = lastBot.offsetTop;
       const targetScrollPos = msgTop - (containerHeight / 2) + 60;
-      container.scrollTo({
-        top: targetScrollPos,
-        behavior: "smooth",
-      });
+      container.scrollTo({ top: targetScrollPos, behavior: "smooth" });
     }
   }, []);
 
@@ -306,9 +310,7 @@ export default function Chatbot() {
     if (isTyping) {
       scrollToBottom();
     } else {
-      const timer = setTimeout(() => {
-        scrollToLastBotMsg();
-      }, 100);
+      const timer = setTimeout(() => { scrollToLastBotMsg(); }, 100);
       return () => clearTimeout(timer);
     }
   }, [messages, isTyping, scrollToBottom, scrollToLastBotMsg]);
@@ -333,7 +335,7 @@ export default function Chatbot() {
         const payload = buildFeedbackPayload(updatedMsg);
 
         api.post("/ai/chat/feedback", payload)
-          .then((res) => {
+          .then(() => {
             setMessages(p => p.map(m =>
               m.id === id ? { ...m, isFeedbackSubmitted: true } : m
             ));
@@ -341,8 +343,7 @@ export default function Chatbot() {
           .catch((error: any) => {
             const httpStatus = error.response?.status;
             showAlert(
-              httpStatus === 404 ? "해당 대화 로그를 찾을 수 없습니다." :
-                "피드백 전송에 실패했습니다.",
+              httpStatus === 404 ? "해당 대화 로그를 찾을 수 없습니다." : "피드백 전송에 실패했습니다.",
               "error", true, () => { window.location.reload(); }
             );
           });
@@ -350,14 +351,13 @@ export default function Chatbot() {
         return prev.map(m => m.id === id ? updatedMsg : m);
       });
     } else {
-      // 싫어요 클릭 시: 상세 창 열기
       setMessages(prev => prev.map(m =>
         m.id === id
           ? { ...m, feedbackStatus: status, isFeedbackOpen: true, selectedReason: undefined }
           : m
       ));
     }
-  }, []);
+  }, [showAlert]);
 
   // ── 사유 선택 ──
   const handleReasonSelect = useCallback((id: string, reason: ReasonCode) => {
@@ -376,8 +376,7 @@ export default function Chatbot() {
       if (!target?.chatLogId) return prev;
 
       api.post("/ai/chat/feedback", buildFeedbackPayload(target))
-        .then((res) => {
-          // 공통 래퍼 없이 피드백 객체 직접 반환
+        .then(() => {
           setMessages(p => p.map(m =>
             m.id === id ? { ...m, isFeedbackOpen: false, isFeedbackSubmitted: true } : m
           ));
@@ -394,36 +393,37 @@ export default function Chatbot() {
 
       return prev;
     });
-  }, []);
+  }, [showAlert]);
 
   // ── 메시지 전송 ──
   const handleSend = useCallback(async (text?: string) => {
     const textToSend = (text ?? inputValue).trim();
-
     if (!textToSend || isTyping) return;
 
-    let currentSessionId = sessionStorage.getItem(STORAGE_KEY_SESSION);
+    // 세션 ID 가져오기 (없으면 새로 생성)
+    let currentSessionId = getSessionId(isLoggedIn);
     if (!currentSessionId) {
-      currentSessionId = await fetchSessionId();
+      currentSessionId = await fetchSessionId(isLoggedIn);
     }
     if (!currentSessionId) {
-      showAlert("세션을 연결할 수 없습니다.\n 잠시 후 다시 시도해주세요.", "error", true, () => {
+      showAlert("세션을 연결할 수 없습니다.\n잠시 후 다시 시도해주세요.", "error", true, () => {
         window.location.reload();
       });
       return;
     }
 
     const userMsg: Message = {
-      id: Date.now().toString(), text: textToSend, sender: "user", timestamp: formatTime(),
+      id: Date.now().toString(),
+      text: textToSend,
+      sender: "user",
+      timestamp: formatTime(),
     };
 
-    // 회원 메시지 저장 시
     setMessages(prev => {
       const updated = [...prev, userMsg].slice(-100);
       if (isLoggedIn) localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(updated));
       return updated;
     });
-
 
     setInputValue("");
     setIsTyping(true);
@@ -431,12 +431,18 @@ export default function Chatbot() {
     try {
       const response = await api.post<ApiResponse>("/chatbot/questions", {
         question: textToSend,
+        // 로그인 사용자: sessionId 전달 (백엔드가 JSESSIONID로 userId, dormitoryName 결정)
+        // 비로그인 사용자: guest sessionId 전달
         sessionId: currentSessionId,
       });
 
       if (response.data.code === 200 && response.data.data) {
         const result = response.data.data;
-        if (result.sessionId) sessionStorage.setItem(STORAGE_KEY_SESSION, result.sessionId);
+
+        // 백엔드에서 새 sessionId 내려오면 저장
+        if (result.sessionId) {
+          saveSessionId(isLoggedIn, result.sessionId);
+        }
 
         const botMsg: Message = {
           id: (Date.now() + 1).toString(),
@@ -449,7 +455,6 @@ export default function Chatbot() {
           isFeedbackSubmitted: false,
         };
 
-        // 봇 메시지 저장 시
         setMessages(prev => {
           const updated = [...prev, botMsg].slice(-100);
           if (isLoggedIn) localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(updated));
@@ -460,8 +465,14 @@ export default function Chatbot() {
       }
     } catch (error: any) {
       const status = error.response?.status;
+
       if (status === 409) {
-        sessionStorage.removeItem(STORAGE_KEY_SESSION);
+        // 세션 만료 → 해당 사용자 유형의 sessionId 삭제
+        if (isLoggedIn) {
+          localStorage.removeItem(STORAGE_KEY_SESSION_LOGGEDIN);
+        } else {
+          sessionStorage.removeItem(STORAGE_KEY_SESSION_GUEST);
+        }
         showAlert("세션이 만료되었습니다. 다시 시도해주세요.", "error", true, () => {
           window.location.reload();
         });
@@ -486,7 +497,7 @@ export default function Chatbot() {
     } finally {
       setIsTyping(false);
     }
-  }, [inputValue, isTyping, isLoggedIn]);
+  }, [inputValue, isTyping, isLoggedIn, showAlert]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -510,8 +521,8 @@ export default function Chatbot() {
       <div
         ref={scrollContainerRef}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
-        className={`flex-1 space-y-8 overflow-y-auto px-6 py-4 transition-all hide-scrollbar ${isSuggestOpen ? "pb-[360px]" : "pb-52"
-          }`}>
+        className={`flex-1 space-y-8 overflow-y-auto px-6 py-4 transition-all hide-scrollbar ${isSuggestOpen ? "pb-[360px]" : "pb-52"}`}
+      >
         {messages.map(msg => (
           <div
             key={msg.id}
@@ -520,14 +531,14 @@ export default function Chatbot() {
             onClick={e => e.stopPropagation()}
           >
             {msg.sender === "bot" && <BotAvatar />}
-
             <div className={`flex max-w-[85%] min-w-0 flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
               <div className={`flex items-end gap-2 ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                <div className={`rounded-[18px] border px-5 py-4 text-[14.5px] font-semibold leading-[1.65] shadow-md whitespace-pre-wrap overflow-hidden break-all ${msg.sender === "user"
-                  ? "rounded-tr-none border-transparent bg-nav-accent text-white shadow-nav-accent/20"
-                  : "rounded-tl-none border-[#eef6f7] bg-white text-nav-primary"
-                  }`}
-                  style={{ maxWidth: '100%' }}
+                <div
+                  className={`rounded-[18px] border px-5 py-4 text-[14.5px] font-semibold leading-[1.65] shadow-md whitespace-pre-wrap overflow-hidden break-all ${msg.sender === "user"
+                    ? "rounded-tr-none border-transparent bg-nav-accent text-white shadow-nav-accent/20"
+                    : "rounded-tl-none border-[#eef6f7] bg-white text-nav-primary"
+                    }`}
+                  style={{ maxWidth: "100%" }}
                 >
                   {msg.text}
                 </div>
@@ -565,8 +576,7 @@ export default function Chatbot() {
                 {isSuggestOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
             </div>
-            <div className={`grid grid-cols-2 gap-2 overflow-hidden transition-all duration-300 ${isSuggestOpen ? "mb-2 pb-1 max-h-[200px] opacity-100" : "mb-0 max-h-0 opacity-0"
-              }`}>
+            <div className={`grid grid-cols-2 gap-2 overflow-hidden transition-all duration-300 ${isSuggestOpen ? "mb-2 pb-1 max-h-[200px] opacity-100" : "mb-0 max-h-0 opacity-0"}`}>
               {SUGGESTED_QUESTIONS.map(q => (
                 <button
                   key={q}
@@ -605,33 +615,23 @@ export default function Chatbot() {
           className="fixed inset-0 z-[100] flex items-center justify-center px-8"
           onClick={handleAlertConfirm}
         >
-          {/* 배경 (Backdrop) */}
           <div className="absolute inset-0 bg-nav-primary/30 backdrop-blur-[4px]" />
-
-          {/* 모달 컨텐츠 */}
           <div
             className="relative w-full max-w-[320px] animate-in fade-in zoom-in duration-300 rounded-[32px] border border-white bg-white p-8 text-center shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            {/* 아이콘 영역 */}
             <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-[#f0f7f9]">
               {alert.type === "success"
                 ? <CheckCircle className="text-nav-accent" size={32} />
                 : <AlertCircle className="text-red-400" size={32} />
               }
             </div>
-
-            {/* 제목 */}
             <h2 className="mb-2 text-[19px] font-bold text-nav-primary">
               {alert.type === "success" ? "알림" : "오류"}
             </h2>
-
-            {/* 메시지 */}
             <p className="mb-7 whitespace-pre-line text-[15px] font-medium leading-relaxed text-nav-primary/70">
               {alert.message}
             </p>
-
-            {/* 버튼 영역 */}
             <div className="flex w-full gap-2">
               {alert.isConfirm ? (
                 <>
