@@ -57,7 +57,7 @@ interface AlertState {
 const ALL_CATEGORY = "__ALL__";
 
 const CATEGORY_MAP: Record<string, { icon: LucideIcon; label: string }> = {
-
+  // 영어 키 (기존 유지)
   "admission": { icon: DoorOpen, label: "입·퇴사안내" },
   "facility": { icon: Plug, label: "편의시설" },
   "facility_usage": { icon: ClipboardList, label: "시설 이용 안내" },
@@ -65,7 +65,20 @@ const CATEGORY_MAP: Record<string, { icon: LucideIcon; label: string }> = {
   "rules": { icon: ScrollText, label: "생활관 수칙" },
   "tip": { icon: Coffee, label: "생활 정보" },
   "tip_restroom": { icon: Wrench, label: "화장실 안내" },
+  // 한글 키 (API 실제 응답값)
+  "입·퇴사안내": { icon: DoorOpen, label: "입·퇴사안내" },
+  "입퇴사 안내": { icon: DoorOpen, label: "입퇴사 안내" },
+  "생활 정보": { icon: Coffee, label: "생활 정보" },
+  "생활관 소개": { icon: Building2, label: "생활관 소개" },
+  "생활관 수칙": { icon: ScrollText, label: "생활관 수칙" },
+  "외부인 생활관 이용안내": { icon: ClipboardList, label: "외부인 생활관 이용안내" },
+  "생활관 이용안내": { icon: ClipboardList, label: "생활관 이용안내" },
+  "생활관 편의시설": { icon: Plug, label: "생활관 편의시설" },
+  "시설안내": { icon: Wrench, label: "시설안내" },
+  "편의시설": { icon: Plug, label: "편의시설" },
+  "생활관안내": { icon: Building2, label: "생활관안내" },
 };
+
 // ─── 유틸 ─────────────────────────────────────────────────
 
 function getCategoryIcon(category: string): LucideIcon {

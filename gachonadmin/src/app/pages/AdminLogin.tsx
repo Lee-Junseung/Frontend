@@ -303,7 +303,7 @@ export default function AdminLogin() {
           {/* 하단 영역 */}
           <div className="mt-6 flex shrink-0 flex-col items-center">
             <a
-              href="https://gaoni-user.vercel.app/api/v1/auth/login"
+              href="https://gaoni-user.vercel.app/auth/login"
               rel="noopener noreferrer"
               className="flex h-[52px] w-full items-center justify-center rounded-[16px] border-2 border-nav-accent/20 bg-white text-[13px] font-extrabold text-nav-accent transition-all hover:bg-nav-accent/5 active:scale-[0.98] active:bg-nav-accent/10"
             >
