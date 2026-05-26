@@ -247,7 +247,7 @@ function RegulationDetailModal({ doc, onClose }: DetailModalProps) {
           </button>
         </div>
 
-        <div className="flex-1 space-y-8 overflow-y-auto p-8">
+        <div className="flex-1 space-y-8 overflow-y-auto hide-scrollbar p-8">
           <section>
             <h3 className="mb-3 flex items-center gap-2 text-[14px] font-bold text-nav-primary">
               <Clipboard size={16} className="text-nav-accent" /> 규정 명칭

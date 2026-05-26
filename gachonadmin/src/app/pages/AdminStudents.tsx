@@ -343,7 +343,7 @@ function StudentDetailModal({ userId, onClose }: DetailModalProps) {
         </div>
 
         {/* ── 바디 ── */}
-        <div className="flex-1 space-y-8 overflow-y-auto p-8">
+        <div className="flex-1 space-y-8 overflow-y-auto hide-scrollbar p-8">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-4 py-20">
               <Loader2 className="size-10 animate-spin text-nav-accent" aria-label="로딩 중" />

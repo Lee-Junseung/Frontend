@@ -296,7 +296,7 @@ function ComplaintDetailModal({
       onClick={onClose}
     >
       <div
-        className="animate-in zoom-in-95 duration-200 no-scrollbar w-full max-w-2xl overflow-y-auto rounded-[24px] bg-white shadow-2xl"
+        className="animate-in zoom-in-95 duration-200 hide-scrollbar w-full max-w-2xl overflow-y-auto rounded-[24px] bg-white shadow-2xl"
         style={{ maxHeight: "90vh" }}
         onClick={e => e.stopPropagation()}
       >
