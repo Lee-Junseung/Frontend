@@ -111,21 +111,18 @@ export default function ComplaintSubmit() {
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append(
-        "request",
-        new Blob(
-          [JSON.stringify({
-            category: categoryId,
-            title: title.trim(),
-            content: content.trim(),
-          })],
-          { type: "application/json" }
-        )
-      );
+
+      formData.append("category", categoryId);
+      formData.append("title", title.trim());
+      formData.append("content", content.trim());
+
       images.forEach(img => formData.append("images", img.file));
 
-      const response = await api.post("/complaints", formData);
-
+      const response = await api.post("/complaints", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        }
+      });
       if (response.data.code === 201) {
         setAlert({ show: true, message: "민원이 정상적으로 접수되었습니다.", type: "success" });
       }
@@ -340,7 +337,8 @@ export default function ComplaintSubmit() {
       <div className="fixed bottom-0 z-40 w-full max-w-[448px] bg-gradient-to-t from-[#f0f9ff] via-[#f0f9ff] to-transparent p-6 pb-8">
         <button
           onClick={handleSubmit}
-          disabled={loading || !title.trim() || !content.trim()}
+          // disabled={loading || !title.trim() || !content.trim()}
+          disabled={loading}
           className="flex h-16 w-full items-center justify-center gap-3 rounded-[24px] bg-nav-accent font-bold text-[16px] text-white shadow-xl shadow-nav-accent/20 transition-all active:scale-[0.98] disabled:bg-nav-inactive"
         >
           {loading
