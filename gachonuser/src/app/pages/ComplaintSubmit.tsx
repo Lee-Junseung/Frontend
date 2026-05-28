@@ -123,7 +123,7 @@ export default function ComplaintSubmit() {
           "Content-Type": "multipart/form-data",
         }
       });
-      if (response.data.code === 201) {
+      if (response.data.code === 200) {
         setAlert({ show: true, message: "민원이 정상적으로 접수되었습니다.", type: "success" });
       }
     } catch (error: any) {
@@ -171,7 +171,9 @@ export default function ComplaintSubmit() {
                 onClick={() => {
                   setAlert({ show: false });
                   // 성공 시 확인 버튼 누르면 이동
-                  if (alert.type === "success") navigate(-1);
+                  if (alert.type === "success") {
+                    navigate(-1);
+                  }
                 }}
                 className="h-[50px] w-full rounded-[18px] bg-nav-accent font-bold text-white shadow-md transition-all active:scale-[0.96]"
               >
