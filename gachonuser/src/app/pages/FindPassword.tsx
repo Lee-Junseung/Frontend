@@ -232,7 +232,7 @@ export default function FindPassword() {
 
     setIsLoading(true);
     try {
-      const response = await api.patch(
+      const response = await api.post(
         "/auth/password/reset",
         { newPassword: resetForm.newPassword }
       );

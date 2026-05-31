@@ -77,6 +77,16 @@ function parseApiError(error: any, fallback: string): string {
   return error.response?.data?.message ?? fallback;
 }
 
+// ─────────────────────────────────────────────────────────
+
+function toRelativeUrl(fileUrl: string): string {
+  try {
+    return new URL(fileUrl).pathname;
+  } catch {
+    return fileUrl;
+  }
+}
+
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export default function Complaints() {
@@ -338,7 +348,7 @@ export default function Complaints() {
                             .filter(img => !idsToDelete.includes(img.complaintImageId))
                             .map(img => (
                               <div key={img.complaintImageId} className="relative">
-                                <img src={`http://52.78.236.146${img.fileUrl}`} className="h-16 w-16 rounded-lg border border-[#eef6f7] object-cover" alt="첨부이미지" />
+                                <img src={toRelativeUrl(img.fileUrl)} className="h-16 w-16 rounded-lg border border-[#eef6f7] object-cover" alt="첨부이미지" />
                                 <button
                                   onClick={() => setIdsToDelete(prev => [...prev, img.complaintImageId])}
                                   className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm"
@@ -404,7 +414,7 @@ export default function Complaints() {
                         {detail.images.map(img => (
                           <img
                             key={img.complaintImageId}
-                            src={`http://52.78.236.146${img.fileUrl}`}
+                            src={toRelativeUrl(img.fileUrl)}
                             className="h-20 w-20 rounded-xl border border-[#eef6f7] object-cover"
                             alt="첨부이미지"
                             loading="lazy"

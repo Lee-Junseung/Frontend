@@ -221,6 +221,14 @@ function useComplaintDetail(
   };
 }
 
+function toRelativeUrl(fileUrl: string): string {
+  try {
+    return new URL(fileUrl).pathname;
+  } catch {
+    return fileUrl;
+  }
+}
+
 // ─── 서브 컴포넌트 ─────────────────────────────────────────
 
 interface ComplaintCardProps {
@@ -357,7 +365,7 @@ function ComplaintDetailModal({
                 {detail.images.map(img => (
                   <a
                     key={img.complaintImageId}
-                    href={img.fileUrl}
+                    href={toRelativeUrl(img.fileUrl)}
                     target="_blank"
                     rel="noreferrer"
                     aria-label={`첨부 이미지: ${img.originalName}`}
@@ -365,7 +373,7 @@ function ComplaintDetailModal({
                   >
                     <div className="relative overflow-hidden rounded-xl border-2 border-white shadow-sm">
                       <img
-                        src={img.fileUrl}
+                        src={toRelativeUrl(img.fileUrl)}
                         alt={img.originalName}
                         className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
